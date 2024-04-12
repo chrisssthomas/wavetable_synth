@@ -1,6 +1,6 @@
+use rodio::Source;
 use core::time::Duration;
 use rodio::OutputStream;
-use rodio::{source::Source};
 use midly::{Smf, MidiMessage};
 use std::fs::File;
 use std::io::Read;
@@ -125,7 +125,7 @@ fn main() {
     // Play the frequencies
     for frequency in frequencies {
         oscillator.set_frequency(frequency);
-        stream_handle.play_raw(oscillator.clone());
+        let _ = stream_handle.play_raw(oscillator.clone());
         std::thread::sleep(Duration::from_millis(500));
     }
 }
