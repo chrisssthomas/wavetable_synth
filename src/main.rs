@@ -1,5 +1,10 @@
 use core::time::Duration;
-use rodio::{OutputStream, source::Source};
+use rodio::OutputStream;
+use rodio::{source::Source};
+use midly::{Smf, MidiMessage};
+use std::fs::File;
+use std::io::Read;
+use midly::TrackEventKind as EventKind;
 
 struct WavetableOscillator {
     sample_rate: u32,
@@ -40,6 +45,15 @@ impl WavetableOscillator {
         return truncated_index_weight * self.wave_table[truncated_index] 
                + next_index_weight * self.wave_table[next_index];
     }
+
+    fn clone(&self) -> WavetableOscillator {
+        return WavetableOscillator {
+            sample_rate: self.sample_rate,
+            wave_table: self.wave_table.clone(),
+            index: self.index,
+            index_increment: self.index_increment,
+        };
+    }
 }
 
 impl Iterator for WavetableOscillator {
@@ -77,11 +91,51 @@ fn main() {
 
     let mut oscillator = WavetableOscillator::new(44100, wave_table);
 
-    oscillator.set_frequency(440.0);
+    // Read the MIDI file
+    let mut file = File::open("test.mid").unwrap();
+    let mut buffer = Vec::new();
+    file.read_to_end(&mut buffer).unwrap();
+
+    // Parse the MIDI file
+    let midi = Smf::parse(&buffer).unwrap();
+
+    // Extract the frequency values from the MIDI file
+    let mut frequencies: Vec<f32> = Vec::new();
+    for (i, track) in midi.tracks.iter().enumerate() {
+        for event in track.iter() {
+            match event.kind {
+                EventKind::Midi { channel: _, message } => {
+                    match message {
+                        MidiMessage::NoteOn { key, vel: _ } => {
+                            let frequency = calculate_frequency(key.into());
+                            frequencies.push(frequency);
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
+    
+
 
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
     
-    let _result = stream_handle.play_raw(oscillator.convert_samples());
+    // Play the frequencies
+    for frequency in frequencies {
+        oscillator.set_frequency(frequency);
+        stream_handle.play_raw(oscillator.clone());
+        std::thread::sleep(Duration::from_millis(500));
+    }
+}
 
-    std::thread::sleep(std::time::Duration::from_secs(5));
+fn calculate_frequency(key: u8) -> f32 {
+    // Calculate the frequency based on the MIDI key number
+    // You can use a formula or a lookup table to map the key number to frequency
+    // For example:
+    let base_frequency = 440.0; // A4
+    let key_offset = key as i32 - 69; // MIDI key number of A4 is 69
+    let frequency = base_frequency * 2.0f32.powf(key_offset as f32 / 12.0);
+    frequency
 }

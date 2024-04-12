@@ -7,4 +7,5 @@ edition = "2021"
 
 [dependencies]
 rodio = "0.14.0"
-
+midir = "0.9.1"
+midly = "0.5.3"
