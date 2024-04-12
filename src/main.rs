@@ -101,7 +101,7 @@ fn main() {
 
     // Extract the frequency values from the MIDI file
     let mut frequencies: Vec<f32> = Vec::new();
-    for (i, track) in midi.tracks.iter().enumerate() {
+    for (_, track) in midi.tracks.iter().enumerate() {
         for event in track.iter() {
             match event.kind {
                 EventKind::Midi { channel: _, message } => {
