@@ -1,10 +1,9 @@
-use rodio::Source;
 use core::time::Duration;
-use rodio::OutputStream;
+use rodio::{OutputStream, Source};
 use midly::{Smf, MidiMessage};
 use std::fs::File;
 use std::io::Read;
-use midly::TrackEventKind as EventKind;
+use midly::TrackEventKind;
 
 struct WavetableOscillator {
     sample_rate: u32,
@@ -104,7 +103,7 @@ fn main() {
     for (_, track) in midi.tracks.iter().enumerate() {
         for event in track.iter() {
             match event.kind {
-                EventKind::Midi { channel: _, message } => {
+                TrackEventKind::Midi { channel: _, message } => {
                     match message {
                         MidiMessage::NoteOn { key, vel: _ } => {
                             let frequency = calculate_frequency(key.into());
