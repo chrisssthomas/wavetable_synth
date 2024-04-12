@@ -131,9 +131,6 @@ fn main() {
 }
 
 fn calculate_frequency(key: u8) -> f32 {
-    // Calculate the frequency based on the MIDI key number
-    // You can use a formula or a lookup table to map the key number to frequency
-    // For example:
     let base_frequency = 440.0; // A4
     let key_offset = key as i32 - 69; // MIDI key number of A4 is 69
     let frequency = base_frequency * 2.0f32.powf(key_offset as f32 / 12.0);
