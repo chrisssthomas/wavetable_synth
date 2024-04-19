@@ -1,85 +1,16 @@
 use core::time::Duration;
-use rodio::{OutputStream, Source};
-use midly::{Smf, MidiMessage};
+use midly::TrackEventKind;
+use midly::{MidiMessage, Smf};
+use rodio::OutputStream;
 use std::fs::File;
 use std::io::Read;
-use midly::TrackEventKind;
+use std::thread;
 
-struct WavetableOscillator {
-    sample_rate: u32,
-    wave_table: Vec<f32>,
-    index: f32,
-    index_increment: f32,
-}
+mod wavetable_oscillator;
+use wavetable_oscillator::WavetableOscillator;
 
-impl WavetableOscillator {
-    fn new(sample_rate: u32, wave_table: Vec<f32>) -> WavetableOscillator {
-        return WavetableOscillator {
-            sample_rate,
-            wave_table,
-            index: 0.0,
-            index_increment: 0.0,
-        };
-    }
-
-    fn set_frequency(&mut self, frequency: f32) {
-        self.index_increment = frequency * self.wave_table.len() as f32 
-                               / self.sample_rate as f32;
-    }
-
-    fn get_sample(&mut self) -> f32 {
-        let sample = self.lerp();
-        self.index += self.index_increment;
-        self.index %= self.wave_table.len() as f32;
-        return sample;
-    }
-
-    fn lerp(&self) -> f32 {
-        let truncated_index = self.index as usize;
-        let next_index = (truncated_index + 1) % self.wave_table.len();
-        
-        let next_index_weight = self.index - truncated_index as f32;
-        let truncated_index_weight = 1.0 - next_index_weight;
-
-        return truncated_index_weight * self.wave_table[truncated_index] 
-               + next_index_weight * self.wave_table[next_index];
-    }
-
-    fn clone(&self) -> WavetableOscillator {
-        return WavetableOscillator {
-            sample_rate: self.sample_rate,
-            wave_table: self.wave_table.clone(),
-            index: self.index,
-            index_increment: self.index_increment,
-        };
-    }
-}
-
-impl Iterator for WavetableOscillator {
-    type Item = f32;
-    
-    fn next(&mut self) -> Option<Self::Item> {
-        return Some(self.get_sample());
-    }
-}
-
-impl Source for WavetableOscillator {
-    fn channels(&self) -> u16 {
-        return 1;
-    }
-
-    fn sample_rate(&self) -> u32 {
-        return self.sample_rate;
-    }   
-
-    fn current_frame_len(&self) -> Option<usize> {
-        return None;
-    }
-
-    fn total_duration(&self) -> Option<Duration> {
-        return None;
-    }
-}
+mod envelope;
+use envelope::ADSR;
 
 fn main() {
     let wave_table_size = 64;
@@ -88,7 +19,9 @@ fn main() {
         wave_table.push((2.0 * std::f32::consts::PI * n as f32 / wave_table_size as f32).sin());
     }
 
-    let mut oscillator = WavetableOscillator::new(44100, wave_table);
+    let adsr = ADSR::new(0.1, 0.1, 0.8, 0.1); // Set ADSR parameters
+
+    let mut oscillator = WavetableOscillator::new(44100, wave_table, 0.5, adsr);
 
     // Read the MIDI file
     let mut file = File::open("test.mid").unwrap();
@@ -103,27 +36,32 @@ fn main() {
     for (_, track) in midi.tracks.iter().enumerate() {
         for event in track.iter() {
             match event.kind {
-                TrackEventKind::Midi { channel: _, message } => {
-                    match message {
-                        MidiMessage::NoteOn { key, vel: _ } => {
-                            let frequency = calculate_frequency(key.into());
-                            frequencies.push(frequency);
-                        }
-                        _ => {}
+                TrackEventKind::Midi {
+                    channel: _,
+                    message,
+                } => match message {
+                    MidiMessage::NoteOn { key, vel: _ } => {
+                        let frequency = calculate_frequency(key.into());
+                        frequencies.push(frequency);
                     }
-                }
+                    _ => {}
+                },
                 _ => {}
             }
         }
     }
-    
+
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
-    
+
     // Play the frequencies
     for frequency in frequencies {
+        // oscillator.adsr.start(0.0); // Start the ADSR envelope
         oscillator.set_frequency(frequency);
+        oscillator.set_volume(0.3);
         let _ = stream_handle.play_raw(oscillator.clone());
-        std::thread::sleep(Duration::from_millis(500));
+
+        thread::sleep(Duration::from_secs_f32(0.5)); // Adjust the delay as needed
+                                                     // oscillator.adsr.stop(0.5);
     }
 }
 
