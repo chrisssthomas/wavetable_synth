@@ -9,7 +9,7 @@ pub struct WavetableOscillator {
     index: f32,
     index_increment: f32,
     volume: f32,
-    adsr: ADSR,
+    pub adsr: ADSR,
 }
 
 impl WavetableOscillator {

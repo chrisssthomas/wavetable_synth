@@ -54,14 +54,15 @@ fn main() {
     let (_stream, stream_handle) = OutputStream::try_default().unwrap();
 
     // Play the frequencies
+    let mut time = 0.0;
     for frequency in frequencies {
-        // oscillator.adsr.start(0.0); // Start the ADSR envelope
         oscillator.set_frequency(frequency);
         oscillator.set_volume(0.3);
+        oscillator.adsr.start(time); // Start the ADSR envelope
         let _ = stream_handle.play_raw(oscillator.clone());
-
         thread::sleep(Duration::from_secs_f32(0.5)); // Adjust the delay as needed
-                                                     // oscillator.adsr.stop(0.5);
+        time += 0.5; // Increment the time
+        oscillator.adsr.stop(time); // Stop the ADSR envelope
     }
 }
 

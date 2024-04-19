@@ -19,15 +19,15 @@ impl ADSR {
         }
     }
 
-    fn start(&mut self, start_time: f32) {
+    pub fn start(&mut self, start_time: f32) {
         self.start_time = start_time;
     }
 
-    fn stop(&mut self, end_time: f32) {
+    pub fn stop(&mut self, end_time: f32) {
         self.end_time = end_time;
     }
 
-    fn value(&self, time: f32) -> f32 {
+    pub fn value(&self, time: f32) -> f32 {
         if time < self.start_time {
             0.0
         } else if time < self.start_time + self.attack {
