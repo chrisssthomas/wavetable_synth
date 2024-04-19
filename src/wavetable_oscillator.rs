@@ -5,9 +5,9 @@ use rodio::Source;
 
 pub struct WavetableOscillator {
     sample_rate: u32,
-    wave_table: Vec<f32>,
+    pub wave_table: Vec<f32>,
     index: f32,
-    index_increment: f32,
+    pub index_increment: f32,
     volume: f32,
     pub adsr: ADSR,
 }
@@ -29,6 +29,10 @@ impl WavetableOscillator {
         };
     }
 
+    pub fn is_playing(&self) -> bool {
+        return self.index < self.wave_table.len() as f32;
+    }
+
     pub fn set_frequency(&mut self, frequency: f32) {
         self.index_increment = frequency * self.wave_table.len() as f32 / self.sample_rate as f32;
     }
@@ -37,7 +41,7 @@ impl WavetableOscillator {
         self.volume = volume;
     }
 
-    fn get_sample(&mut self) -> f32 {
+    pub fn get_sample(&mut self) -> f32 {
         let sample = self.lerp();
         self.index += self.index_increment;
         self.index %= self.wave_table.len() as f32;
@@ -53,17 +57,6 @@ impl WavetableOscillator {
 
         return truncated_index_weight * self.wave_table[truncated_index]
             + next_index_weight * self.wave_table[next_index];
-    }
-
-    pub fn clone(&self) -> WavetableOscillator {
-        return WavetableOscillator {
-            sample_rate: self.sample_rate,
-            wave_table: self.wave_table.clone(),
-            index: self.index,
-            index_increment: self.index_increment,
-            volume: self.volume,
-            adsr: self.adsr.clone(),
-        };
     }
 }
 
@@ -85,7 +78,7 @@ impl Source for WavetableOscillator {
     }
 
     fn current_frame_len(&self) -> Option<usize> {
-        return None;
+        return self.wave_table.len().checked_sub(self.index as usize);
     }
 
     fn total_duration(&self) -> Option<Duration> {
