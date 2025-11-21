@@ -3,9 +3,36 @@ name = "wavetable_synth"
 version = "0.1.0"
 edition = "2021"
 
+# VST plugin build configuration
+[[bin]]
+name = "wavetable_synth"
+path = "src/main.rs"
+
+[lib]
+name = "wavetable_synth_vst"
+crate-type = ["cdylib", "rlib"]
+path = "src/lib.rs"
+
+[features]
+default = ["standalone"]
+standalone = ["eframe", "egui", "crossterm"]
+vst = ["dep:vst"]
+
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 rodio = "0.14.0"
 midly = "0.5.3"
 midir = "0.6"
+# GUI dependencies (only for standalone)
+eframe = { version = "0.28", optional = true }
+egui = { version = "0.28", optional = true }
+crossterm = { version = "0.27", optional = true }
+# VST plugin support (only for vst feature)
+vst = { version = "0.3", optional = true }
+# Audio processing optimizations
+dasp = "0.11"  # For sample rate conversion and audio utilities
+# Real-time safe collections
+crossbeam = "0.8"
+# Better RNG for noise/random
+fastrand = "2.0"
