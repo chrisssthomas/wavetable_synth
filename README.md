@@ -1,7 +1,7 @@
 **Setup**
 
 dev
-`cargo run`
+`cargo run --release --features standalone`
 
 build
 `cargo build`
